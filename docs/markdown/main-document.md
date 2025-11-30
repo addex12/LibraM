@@ -1,12 +1,12 @@
 ---
 title: "Library Management System for Ethiopian Universities"
 author:
-  - name: "[Your Full Name]"
+  - name: "Adugna Gizaw"
     affiliation: "Department of Computer Science"
-    university: "[University Name]"
+    university: "Addis Ababa University"
 date: "November 2025"
 course: "BSc Graduation Project"
-supervisor: "[Advisor Name]"
+supervisor: ""
 version: "1.0"
 ---
 
@@ -20,8 +20,8 @@ This thesis has been examined and approved for submission to the Department of C
 
 | Name | Position | Signature | Date |
 | --- | --- | --- | --- |
-| [Advisor Name] | Major Advisor | | |
-| [External Examiner] | External Examiner | | |
+| Dr.   | Major Advisor | | |
+| Mr.   | External Examiner | | |
 
 # Dedication
 
@@ -29,7 +29,7 @@ To my family, mentors, and every librarian in Ethiopia who patiently serves lear
 
 # Acknowledgements
 
-I am grateful to my advisor, department staff, and the librarians of [University Name] who shared their time during interviews. I also thank classmates for peer reviews, and my family for spiritual and financial support throughout this journey.
+I am grateful to my advisor, department staff, and the librarians of Addis Ababa University who shared their time during interviews. I also thank classmates for peer reviews, and my family for spiritual and financial support throughout this journey.
 
 # Abstract
 
@@ -68,7 +68,7 @@ Ethiopian universities serve a rapidly growing student population that exceeds 8
 
 ## 1.2 Problem Statement
 
-During observational studies at [University Name], librarians reported spending an average of seven minutes to locate and issue a single book. Students frequently queue for simple availability checks and often return items late because overdue reminders are not automated. Administrators lack accurate statistics on collection usage, hindering budget justification. Existing open-source systems such as Koha are powerful but require infrastructure and expertise that many regional universities cannot sustain. Consequently, there is a need for a lightweight, context-aware LMS with simple deployment and multilingual interfaces.
+During observational studies at Addis Ababa University, librarians reported spending an average of seven minutes to locate and issue a single book. Students frequently queue for simple availability checks and often return items late because overdue reminders are not automated. Administrators lack accurate statistics on collection usage, hindering budget justification. Existing open-source systems such as Koha are powerful but require infrastructure and expertise that many regional universities cannot sustain. Consequently, there is a need for a lightweight, context-aware LMS with simple deployment and multilingual interfaces.
 
 ## 1.3 Objectives of the Study
 
