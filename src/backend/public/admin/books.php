@@ -359,7 +359,7 @@ if (! $filtersApplied && $bookCount <= 1) {
                 </div>
             </div>
             <div class="table-responsive">
-                <table class="table table-striped mb-0">
+                <table class="table table-striped mb-0 book-table">
                     <thead>
                     <tr>
                         <th>Title</th>
@@ -376,7 +376,7 @@ if (! $filtersApplied && $bookCount <= 1) {
                     <?php else: ?>
                         <?php foreach ($books as $book): ?>
                             <tr>
-                                <td>
+                                <td class="book-title-cell">
                                     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
         <?php $bookPayload = [
             'id' => $book['id'],
@@ -408,20 +408,24 @@ if (! $filtersApplied && $bookCount <= 1) {
                                 </td>
                                 <td><?php echo htmlspecialchars($book['author']); ?></td>
                                 <td><?php echo $book['publication_year'] ? htmlspecialchars((string) $book['publication_year']) : '—'; ?></td>
-                                <td>
+                                <td class="book-availability">
                                     <?php if ($book['copies_total'] !== null): ?>
                                         <?php echo htmlspecialchars((string) $book['copies_available']); ?> / <?php echo htmlspecialchars((string) $book['copies_total']); ?>
                                     <?php else: ?>
                                         —
                                     <?php endif; ?>
                                 </td>
-                                <td>
-                                    <?php echo htmlspecialchars($book['branch_name'] ?? '—'); ?><br>
-                                    <small class="text-muted">
-                                        <?php echo $book['shelf_label'] ? 'Shelf ' . htmlspecialchars($book['shelf_label']) : 'No shelf'; ?>
-                                    </small>
+                                <td class="book-location">
+                                    <div class="fw-semibold mb-1"><?php echo htmlspecialchars($book['branch_name'] ?? '—'); ?></div>
+                                    <div class="text-muted small">
+                                        <?php if ($book['shelf_label']): ?>
+                                            <span class="badge text-bg-light">Shelf <?php echo htmlspecialchars($book['shelf_label']); ?></span>
+                                        <?php else: ?>
+                                            <span>No shelf</span>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
-                                <td><?php echo htmlspecialchars($book['subject_name'] ?? 'General'); ?></td>
+                                <td class="book-subject-cell"><?php echo htmlspecialchars($book['subject_name'] ?? 'General'); ?></td>
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>
