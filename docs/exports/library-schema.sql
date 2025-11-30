@@ -1,3 +1,4 @@
+```sql
 CREATE TABLE books (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     isbn TEXT NOT NULL,
@@ -32,3 +33,15 @@ CREATE TABLE loans (
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE user_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    full_name TEXT NOT NULL,
+    identifier TEXT NOT NULL,
+    role TEXT NOT NULL,
+    channel TEXT NOT NULL,
+    usage_summary TEXT,
+    last_login_at TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+```

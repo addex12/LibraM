@@ -144,6 +144,18 @@ class Schema
             FOREIGN KEY(reservation_id) REFERENCES reservations(id)
         )');
 
+        $pdo->exec('CREATE TABLE IF NOT EXISTS user_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            full_name TEXT NOT NULL,
+            identifier TEXT NOT NULL,
+            role TEXT NOT NULL,
+            channel TEXT NOT NULL,
+            usage_summary TEXT,
+            last_login_at TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )');
+
         self::addColumn($pdo, 'books', 'branch_id INTEGER REFERENCES branches(id)');
         self::addColumn($pdo, 'books', 'shelf_id INTEGER REFERENCES shelves(id)');
         self::addColumn($pdo, 'books', 'subject_id INTEGER REFERENCES subjects(id)');

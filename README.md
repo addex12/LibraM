@@ -45,6 +45,14 @@ This repository collects every asset required for a University-level Library Man
    composer notify-overdue
    ```
 
+## Sample Sign-ins & Activity Data
+
+- The admin portal ships with curated sample accounts so reviewers can log in immediately:
+   - **Librarian (default admin)** — username `librarian`, password `library123`
+   - **Operations Desk (super admin)** — username `superadmin`, password `superlibrary!23`
+- The `user_sessions` table stores representative librarian and student journeys (Sara Mekonnen, Yonatan Bekele, Hanna Girma, etc.) that power the refreshed dashboards. They illustrate how real users sign in (kiosk, mobile, research commons) and what they do next (reserve seats, renew books, clear fines). Update `scripts/seed.php` or insert records directly through the admin tools to showcase your own pilot data.
+- The public portal now highlights these journeys on the homepage so stakeholders can see live-inspired usage, while the admin dashboard renders the same feed inside “User sign-ins” and “Member spotlight” cards for quick demos.
+
 ## Documentation Workflow
 
 All official text lives inside `docs/markdown/`. Use the provided Pandoc command (documented in `docs/README.md`) to regenerate DOCX/PDF deliverables whenever content changes.

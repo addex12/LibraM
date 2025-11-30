@@ -11,12 +11,14 @@ declare(strict_types=1);
 use App\Repositories\BookRepository;
 use App\Repositories\LoanRepository;
 use App\Repositories\MemberRepository;
+use App\Repositories\UserSessionRepository;
 
 $pdo = require __DIR__ . '/../bootstrap.php';
 
 $bookRepo = new BookRepository($pdo);
 $memberRepo = new MemberRepository($pdo);
 $loanRepo = new LoanRepository($pdo);
+$sessionRepo = new UserSessionRepository($pdo);
 
 if (! $bookRepo->all()) {
     $books = [
@@ -136,6 +138,55 @@ if (! $loanRepo->all()) {
             'due_on' => date('Y-m-d', strtotime('-1 day')),
             'status' => 'borrowed',
         ]);
+    }
+}
+
+if ($sessionRepo->count() === 0) {
+    $sessions = [
+        [
+            'full_name' => 'Librarian Team',
+            'identifier' => 'librarian',
+            'role' => 'Admin',
+            'channel' => 'Web Console',
+            'usage_summary' => 'Reviewed reservations and approved new student accounts.',
+            'last_login_at' => date('c', strtotime('today 09:15')),
+        ],
+        [
+            'full_name' => 'Operations Desk',
+            'identifier' => 'superadmin',
+            'role' => 'Super Admin',
+            'channel' => 'Admin Ops',
+            'usage_summary' => 'Ran nightly data sync and cleared system health alerts.',
+            'last_login_at' => date('c', strtotime('today 08:42')),
+        ],
+        [
+            'full_name' => 'Sara Mekonnen',
+            'identifier' => 'UGR/1234/13',
+            'role' => 'Member',
+            'channel' => 'Service Desk',
+            'usage_summary' => 'Borrowed “Clean Code” and set a due-date reminder.',
+            'last_login_at' => date('c', strtotime('today 09:02')),
+        ],
+        [
+            'full_name' => 'Yonatan Bekele',
+            'identifier' => 'UGR/5678/13',
+            'role' => 'Member',
+            'channel' => 'Mobile Portal',
+            'usage_summary' => 'Checked fines and renewed “Head First SQL”.',
+            'last_login_at' => date('c', strtotime('yesterday 16:35')),
+        ],
+        [
+            'full_name' => 'Hanna Girma',
+            'identifier' => 'UGR/9012/13',
+            'role' => 'Research Fellow',
+            'channel' => 'Research Commons',
+            'usage_summary' => 'Reserved a collaboration pod and exported analytics.',
+            'last_login_at' => date('c', strtotime('yesterday 11:10')),
+        ],
+    ];
+
+    foreach ($sessions as $session) {
+        $sessionRepo->create($session);
     }
 }
 

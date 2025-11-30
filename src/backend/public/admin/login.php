@@ -36,10 +36,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Library Admin Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <style>
-        body { background-color: #f5f6f8; }
-        .login-card { max-width: 420px; margin: 5rem auto; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+        body {
+            background: radial-gradient(circle at top, #1f61d1, #111c44);
+            min-height: 100vh;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        .login-card {
+            max-width: 460px;
+            margin: 4rem auto;
+            border: none;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 60px rgba(15, 23, 42, 0.35);
+            overflow: hidden;
+        }
+        .login-card .card-header {
+            background: linear-gradient(120deg, rgba(255,255,255,0.08), rgba(255,255,255,0));
+        }
+        .sample-credentials div + div {
+            margin-top: 0.75rem;
+            border-top: 1px dashed #dbe1ff;
+            padding-top: 0.75rem;
+        }
+        .credential-tag {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        }
     </style>
 </head>
 <body>

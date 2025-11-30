@@ -11,6 +11,33 @@ declare(strict_types=1);
 use App\Repositories\BookRepository;
 use App\Repositories\LoanRepository;
 use App\Repositories\MemberRepository;
+use App\Repositories\UserSessionRepository;
+
+/**
+ * Escape output for HTML contexts, normalizing scalars to strings first.
+ */
+function e(null|string|int|float|bool $value): string
+{
+    return htmlspecialchars((string) ($value ?? ''), ENT_QUOTES, 'UTF-8');
+}
+
+function initials(string $name): string
+{
+    $parts = preg_split('/\s+/', trim($name));
+    $parts = array_values(array_filter($parts, static fn ($part) => $part !== ''));
+    if (! $parts) {
+        return strtoupper(substr($name, 0, 2) ?: 'LB');
+    }
+    $first = substr($parts[0], 0, 1) ?: '';
+    $last = substr($parts[count($parts) - 1], 0, 1) ?: '';
+    return strtoupper($first . ($last ?: $first));
+}
+
+function readable_login(string $timestamp): string
+{
+    $time = strtotime($timestamp);
+    return $time ? date('M j · g:i A', $time) : $timestamp;
+}
 
 session_start();
 
@@ -19,6 +46,7 @@ $pdo = require __DIR__ . '/../bootstrap.php';
 $bookRepository = new BookRepository($pdo);
 $memberRepository = new MemberRepository($pdo);
 $loanRepository = new LoanRepository($pdo);
+$userSessionRepository = new UserSessionRepository($pdo);
 
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/';
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -99,8 +127,24 @@ if ($method === 'POST') {
 }
 
 $keyword = $_GET['keyword'] ?? null;
-$books = $bookRepository->all($keyword);
-$availableBooks = array_filter($bookRepository->all(), fn ($book) => (int) $book['copies_available'] > 0);
+$catalog = $bookRepository->all();
+$books = $keyword ? $bookRepository->all($keyword) : $catalog;
+$availableBooks = array_filter($catalog, fn ($book) => (int) $book['copies_available'] > 0);
+$members = $memberRepository->all();
+$memberCount = count($members);
+$loans = $loanRepository->all();
+$activeLoanCount = count(array_filter($loans, static fn ($loan) => ($loan['status'] ?? 'borrowed') === 'borrowed'));
+$overdueCount = count(array_filter($loans, static fn ($loan) => ($loan['status'] ?? '') === 'borrowed' && strtotime($loan['due_on']) < time()));
+$copiesAvailable = array_sum(array_map(static fn ($book) => (int) $book['copies_available'], $catalog));
+$copiesTotal = array_sum(array_map(static fn ($book) => (int) $book['copies_total'], $catalog));
+$heroStats = [
+    ['label' => 'Books cataloged', 'value' => number_format(count($catalog)), 'meta' => 'Across every faculty library'],
+    ['label' => 'Copies ready to borrow', 'value' => number_format($copiesAvailable), 'meta' => number_format($copiesTotal) . ' copies in total'],
+    ['label' => 'Registered members', 'value' => number_format($memberCount), 'meta' => 'Students, staff & alumni'],
+    ['label' => 'Active loans', 'value' => number_format($activeLoanCount), 'meta' => number_format($overdueCount) . ' due soon'],
+];
+$sampleStories = $userSessionRepository->recent(4, ['Admin', 'Super Admin'], false);
+$channelStats = $userSessionRepository->channelStats();
 
 $lookupStudent = trim($_GET['lookup_student'] ?? '');
 $lookupMember = null;
@@ -115,6 +159,30 @@ if ($lookupStudent !== '') {
 public_header('Library Service Portal');
 public_flash($flash);
 ?>
+<section class="hero-panel mb-4">
+    <div class="row g-4 align-items-center">
+        <div class="col-lg-8">
+            <p class="text-uppercase small mb-2 text-white-50">Welcome to LibraM</p>
+            <h2 class="display-6 fw-semibold text-white mb-3">Discover, borrow, and track every resource from one modern workspace.</h2>
+            <p class="text-white-75 mb-4">Students, researchers, and librarians collaborate here daily. Search the live catalog, request pickups, and follow your loan history in real time.</p>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-light" href="#catalog">Browse catalog</a>
+                <a class="btn btn-outline-light" href="/admin/login.php">Staff login</a>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mt-2">
+        <?php foreach ($heroStats as $stat): ?>
+            <div class="col-6 col-md-3">
+                <div class="stat-pill">
+                    <p class="stat-value mb-0"><?php echo e($stat['value']); ?></p>
+                    <p class="stat-label mb-0"><?php echo e($stat['label']); ?></p>
+                    <span class="stat-meta"><?php echo e($stat['meta']); ?></span>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+</section>
 <section class="py-3">
     <div class="row g-4">
         <div class="col-lg-8">
@@ -122,7 +190,7 @@ public_flash($flash);
                 <div class="card-body">
                     <form class="row gy-2 gx-2 align-items-center" method="get">
                         <div class="col-sm-9">
-                            <input type="text" class="form-control" name="keyword" placeholder="Search by title, author or subject" value="<?php echo htmlspecialchars($keyword ?? ''); ?>">
+                            <input type="text" class="form-control" name="keyword" placeholder="Search by title, author or subject" value="<?php echo e($keyword ?? ''); ?>">
                         </div>
                         <div class="col-sm-auto">
                             <button class="btn btn-primary" type="submit">Search Catalog</button>
@@ -133,7 +201,7 @@ public_flash($flash);
                     </form>
                 </div>
             </div>
-            <div class="card">
+            <div class="card" id="catalog">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Available Books</h5>
                     <span class="text-muted small"><?php echo count($books); ?> record(s)</span>
@@ -155,11 +223,11 @@ public_flash($flash);
                         <?php else: ?>
                             <?php foreach ($books as $book): ?>
                                 <tr>
-                                    <td><strong><?php echo htmlspecialchars($book['title']); ?></strong><br><small class="text-muted">ISBN: <?php echo htmlspecialchars($book['isbn']); ?></small></td>
-                                    <td><?php echo htmlspecialchars($book['author']); ?></td>
-                                    <td><?php echo htmlspecialchars($book['publication_year'] ?? ''); ?></td>
-                                    <td><?php echo htmlspecialchars($book['subjects'] ?? ''); ?></td>
-                                    <td><?php echo htmlspecialchars($book['copies_available']); ?> / <?php echo htmlspecialchars($book['copies_total']); ?></td>
+                                    <td><strong><?php echo e($book['title']); ?></strong><br><small class="text-muted">ISBN: <?php echo e($book['isbn']); ?></small></td>
+                                    <td><?php echo e($book['author']); ?></td>
+                                    <td><?php echo e($book['publication_year'] ?? ''); ?></td>
+                                    <td><?php echo e($book['subjects'] ?? ''); ?></td>
+                                    <td><?php echo e($book['copies_available']); ?> / <?php echo e($book['copies_total']); ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
@@ -207,7 +275,7 @@ public_flash($flash);
                                 <select name="book_id" class="form-select" required>
                                     <option value="">-- choose --</option>
                                     <?php foreach ($availableBooks as $book): ?>
-                                        <option value="<?php echo $book['id']; ?>"><?php echo htmlspecialchars($book['title']); ?> (<?php echo htmlspecialchars($book['copies_available']); ?> left)</option>
+                                        <option value="<?php echo $book['id']; ?>"><?php echo e($book['title']); ?> (<?php echo e($book['copies_available']); ?> left)</option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -234,7 +302,7 @@ public_flash($flash);
                     <form method="get">
                         <div class="mb-3">
                             <label class="form-label">Student ID</label>
-                            <input type="text" name="lookup_student" class="form-control" value="<?php echo htmlspecialchars($lookupStudent); ?>" required>
+                            <input type="text" name="lookup_student" class="form-control" value="<?php echo e($lookupStudent); ?>" required>
                         </div>
                         <button class="btn btn-outline-primary w-100" type="submit">Search Loans</button>
                     </form>
@@ -245,7 +313,7 @@ public_flash($flash);
 
     <?php if ($lookupStudent !== ''): ?>
         <div class="card mt-4">
-            <div class="card-header">Loan History for <?php echo htmlspecialchars($lookupStudent); ?></div>
+            <div class="card-header">Loan History for <?php echo e($lookupStudent); ?></div>
             <div class="table-responsive">
                 <table class="table table-striped mb-0">
                     <thead>
@@ -265,11 +333,11 @@ public_flash($flash);
                     <?php else: ?>
                         <?php foreach ($lookupLoans as $loan): ?>
                             <tr>
-                                <td><?php echo htmlspecialchars($loan['book_title']); ?></td>
-                                <td><?php echo htmlspecialchars($loan['borrowed_on']); ?></td>
-                                <td><?php echo htmlspecialchars($loan['due_on']); ?></td>
-                                <td><?php echo htmlspecialchars($loan['returned_on'] ?? '-'); ?></td>
-                                <td><span class="badge bg-<?php echo $loan['status'] === 'borrowed' ? 'warning text-dark' : 'success'; ?>"><?php echo htmlspecialchars($loan['status']); ?></span></td>
+                                <td><?php echo e($loan['book_title']); ?></td>
+                                <td><?php echo e($loan['borrowed_on']); ?></td>
+                                <td><?php echo e($loan['due_on']); ?></td>
+                                <td><?php echo e($loan['returned_on'] ?? '-'); ?></td>
+                                <td><span class="badge bg-<?php echo $loan['status'] === 'borrowed' ? 'warning text-dark' : 'success'; ?>"><?php echo e($loan['status']); ?></span></td>
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -278,6 +346,61 @@ public_flash($flash);
             </div>
         </div>
     <?php endif; ?>
+</section>
+<section class="py-4">
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">Sample User Journeys</h5>
+                        <small class="text-muted">Live-inspired data showing how people sign in and use the library.</small>
+                    </div>
+                    <span class="badge text-bg-primary">Preview</span>
+                </div>
+                <div class="card-body">
+                    <?php foreach ($sampleStories as $story): ?>
+                        <div class="activity-row">
+                            <div class="avatar-chip"><?php echo e(initials($story['full_name'])); ?></div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between flex-wrap gap-2">
+                                    <div>
+                                        <p class="mb-0 fw-semibold"><?php echo e($story['full_name']); ?></p>
+                                        <small class="text-muted">ID <?php echo e($story['identifier']); ?></small>
+                                    </div>
+                                    <small class="text-muted"><?php echo e(readable_login($story['last_login_at'])); ?></small>
+                                </div>
+                                <p class="mb-0 text-body-secondary"><?php echo e($story['usage_summary']); ?></p>
+                                <span class="activity-pill"><?php echo e($story['channel']); ?></span>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Sign-in Channels</h5>
+                    <small class="text-muted">Where the sample users connected from</small>
+                </div>
+                <div class="card-body">
+                    <?php foreach ($channelStats as $stat): ?>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <p class="mb-0 fw-semibold"><?php echo e($stat['channel']); ?></p>
+                                <small class="text-muted">Experience snapshot</small>
+                            </div>
+                            <span class="badge rounded-pill text-bg-light text-dark"><?php echo e($stat['total']); ?> sample user(s)</span>
+                        </div>
+                    <?php endforeach; ?>
+                    <hr>
+                    <p class="text-muted small mb-1">Need librarian access?</p>
+                    <p class="mb-0">Contact the ICT office to request secure credentials.</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </section>
 <?php public_footer(); ?>
 <?php
