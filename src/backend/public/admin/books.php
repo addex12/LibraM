@@ -13,6 +13,110 @@ use App\Repositories\BranchRepository;
 use App\Repositories\ShelfRepository;
 use App\Repositories\SubjectRepository;
 
+function validate_book_payload(array $input, array $branchIndex, array $shelfIndex, array $subjectIndex, BookRepository $bookRepository, ?int $editingId = null): array
+{
+    $errors = [];
+    $payload = [
+        'isbn' => trim((string) ($input['isbn'] ?? '')),
+        'title' => trim((string) ($input['title'] ?? '')),
+        'author' => trim((string) ($input['author'] ?? '')),
+        'publisher' => trim((string) ($input['publisher'] ?? '')),
+        'subjects' => trim((string) ($input['subjects'] ?? '')),
+    ];
+
+    if ($payload['isbn'] === '') {
+        $errors[] = 'ISBN is required.';
+    }
+
+    if ($payload['title'] === '') {
+        $errors[] = 'Title is required.';
+    }
+
+    if ($payload['author'] === '') {
+        $errors[] = 'Author is required.';
+    }
+
+    if ($payload['publisher'] === '') {
+        $payload['publisher'] = null;
+    }
+
+    $yearRaw = trim((string) ($input['publication_year'] ?? ''));
+    if ($yearRaw === '') {
+        $payload['publication_year'] = null;
+    } elseif (! ctype_digit($yearRaw)) {
+        $errors[] = 'Publication year must be a valid number.';
+        $payload['publication_year'] = null;
+    } else {
+        $year = (int) $yearRaw;
+        $currentYear = (int) date('Y') + 2;
+        if ($year < 1400 || $year > $currentYear) {
+            $errors[] = 'Publication year must be between 1400 and ' . $currentYear . '.';
+        }
+        $payload['publication_year'] = $year;
+    }
+
+    $totalRaw = (int) max(1, (int) ($input['copies_total'] ?? 1));
+    $availableRaw = (int) max(0, (int) ($input['copies_available'] ?? $totalRaw));
+    if ($availableRaw > $totalRaw) {
+        $errors[] = 'Available copies cannot exceed the total copies.';
+    }
+    $payload['copies_total'] = $totalRaw;
+    $payload['copies_available'] = min($availableRaw, $totalRaw);
+
+    $payload['subjects'] = $payload['subjects'] !== '' ? $payload['subjects'] : null;
+
+    $branchValue = trim((string) ($input['branch_id'] ?? ''));
+    if ($branchValue === '') {
+        $payload['branch_id'] = null;
+    } else {
+        $branchId = (int) $branchValue;
+        if (! isset($branchIndex[$branchId])) {
+            $errors[] = 'Selected branch is invalid.';
+            $payload['branch_id'] = null;
+        } else {
+            $payload['branch_id'] = $branchId;
+        }
+    }
+
+    $shelfValue = trim((string) ($input['shelf_id'] ?? ''));
+    if ($shelfValue === '') {
+        $payload['shelf_id'] = null;
+    } else {
+        $shelfId = (int) $shelfValue;
+        if (! isset($shelfIndex[$shelfId])) {
+            $errors[] = 'Selected shelf is invalid.';
+            $payload['shelf_id'] = null;
+        } else {
+            $payload['shelf_id'] = $shelfId;
+            if ($payload['branch_id'] !== null && (int) $shelfIndex[$shelfId]['branch_id'] !== $payload['branch_id']) {
+                $errors[] = 'Selected shelf does not belong to the chosen branch.';
+            }
+        }
+    }
+
+    $subjectValue = trim((string) ($input['subject_id'] ?? ''));
+    if ($subjectValue === '') {
+        $payload['subject_id'] = null;
+    } else {
+        $subjectId = (int) $subjectValue;
+        if (! isset($subjectIndex[$subjectId])) {
+            $errors[] = 'Selected subject area is invalid.';
+            $payload['subject_id'] = null;
+        } else {
+            $payload['subject_id'] = $subjectId;
+        }
+    }
+
+    if ($payload['isbn'] !== '') {
+        $existing = $bookRepository->findByIsbn($payload['isbn']);
+        if ($existing && (int) $existing['id'] !== (int) $editingId) {
+            $errors[] = 'Another book with this ISBN already exists.';
+        }
+    }
+
+    return [$payload, $errors];
+}
+
 $pdo = require __DIR__ . '/../../bootstrap.php';
 require __DIR__ . '/includes/auth.php';
 require_admin_login();
@@ -24,102 +128,125 @@ $shelfRepository = new ShelfRepository($pdo);
 $subjectRepository = new SubjectRepository($pdo);
 $message = null;
 $error = null;
-$keyword = $_GET['keyword'] ?? null;
+$keyword = isset($_GET['keyword']) ? trim((string) $_GET['keyword']) : null;
+
+$branches = $branchRepository->all();
+$shelves = $shelfRepository->all();
+$subjects = $subjectRepository->all();
+$branchIndex = [];
+foreach ($branches as $branch) {
+    $branchIndex[(int) $branch['id']] = $branch;
+}
+$shelfIndex = [];
+foreach ($shelves as $shelf) {
+    $shelfIndex[(int) $shelf['id']] = $shelf;
+}
+$subjectIndex = [];
+foreach ($subjects as $subject) {
+    $subjectIndex[(int) $subject['id']] = $subject;
+}
+
+$bookToEdit = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? 'create';
     try {
-        if ($action === 'create') {
-            $bookRepository->create([
-                'isbn' => trim($_POST['isbn'] ?? ''),
-                'title' => trim($_POST['title'] ?? ''),
-                'author' => trim($_POST['author'] ?? ''),
-                'publisher' => trim($_POST['publisher'] ?? ''),
-                'publication_year' => $_POST['publication_year'] ? (int) $_POST['publication_year'] : null,
-                'copies_total' => $_POST['copies_total'] ? (int) $_POST['copies_total'] : 1,
-                'copies_available' => $_POST['copies_available'] ? (int) $_POST['copies_available'] : ($_POST['copies_total'] ? (int) $_POST['copies_total'] : 1),
-                'subjects' => trim($_POST['subjects'] ?? ''),
-                'branch_id' => (isset($_POST['branch_id']) && $_POST['branch_id'] !== '') ? (int) $_POST['branch_id'] : null,
-                'shelf_id' => (isset($_POST['shelf_id']) && $_POST['shelf_id'] !== '') ? (int) $_POST['shelf_id'] : null,
-                'subject_id' => (isset($_POST['subject_id']) && $_POST['subject_id'] !== '') ? (int) $_POST['subject_id'] : null,
-            ]);
-            header('Location: /admin/books.php?message=' . urlencode('Book added successfully.'));
+        if ($action === 'seed_sample') {
+            if (! is_super_admin()) {
+                throw new RuntimeException('Only super administrators can reload sample data.');
+            }
+            require __DIR__ . '/../../scripts/seed.php';
+            header('Location: /admin/books.php?message=' . urlencode('Sample catalog ensured.'));
             exit;
         }
-
-        if ($action === 'update') {
-            $id = (int) ($_POST['id'] ?? 0);
-            $bookRepository->update($id, [
-                'isbn' => trim($_POST['isbn'] ?? ''),
-                'title' => trim($_POST['title'] ?? ''),
-                'author' => trim($_POST['author'] ?? ''),
-                'publisher' => trim($_POST['publisher'] ?? ''),
-                'publication_year' => $_POST['publication_year'] ? (int) $_POST['publication_year'] : null,
-                'copies_total' => $_POST['copies_total'] ? (int) $_POST['copies_total'] : null,
-                'copies_available' => $_POST['copies_available'] ? (int) $_POST['copies_available'] : null,
-                'subjects' => trim($_POST['subjects'] ?? ''),
-                'branch_id' => (isset($_POST['branch_id']) && $_POST['branch_id'] !== '') ? (int) $_POST['branch_id'] : null,
-                'shelf_id' => (isset($_POST['shelf_id']) && $_POST['shelf_id'] !== '') ? (int) $_POST['shelf_id'] : null,
-                'subject_id' => (isset($_POST['subject_id']) && $_POST['subject_id'] !== '') ? (int) $_POST['subject_id'] : null,
-            ]);
-            header('Location: /admin/books.php?message=' . urlencode('Book updated successfully.'));
-            exit;
-        }
-
         if ($action === 'delete') {
             $id = (int) ($_POST['id'] ?? 0);
             $bookRepository->delete($id);
             header('Location: /admin/books.php?message=' . urlencode('Book deleted.'));
             exit;
         }
+
+        $editingId = $action === 'update' ? (int) ($_POST['id'] ?? 0) : null;
+        [$payload, $validationErrors] = validate_book_payload($_POST, $branchIndex, $shelfIndex, $subjectIndex, $bookRepository, $editingId);
+
+        if ($validationErrors) {
+            $error = implode('<br>', $validationErrors);
+            $bookToEdit = $payload;
+            if ($editingId) {
+                $bookToEdit['id'] = $editingId;
+            }
+        } else {
+            if ($action === 'create') {
+                $bookRepository->create($payload);
+                header('Location: /admin/books.php?message=' . urlencode('Book added successfully.'));
+                exit;
+            }
+
+            if ($action === 'update' && $editingId) {
+                $bookRepository->update($editingId, $payload);
+                header('Location: /admin/books.php?message=' . urlencode('Book updated successfully.'));
+                exit;
+            }
+
+            $error = 'Unknown action requested.';
+        }
     } catch (Throwable $throwable) {
         $error = $throwable->getMessage();
     }
 }
 
-$branches = $branchRepository->all();
-$shelves = $shelfRepository->all();
-$subjects = $subjectRepository->all();
 $editId = isset($_GET['edit']) ? (int) $_GET['edit'] : null;
-$bookToEdit = $editId ? $bookRepository->find($editId) : null;
+if (! $bookToEdit && $editId) {
+    $bookToEdit = $bookRepository->find($editId);
+}
 $branchFilter = isset($_GET['branch']) && $_GET['branch'] !== '' ? (int) $_GET['branch'] : null;
 $subjectFilter = isset($_GET['subject']) && $_GET['subject'] !== '' ? (int) $_GET['subject'] : null;
 $shelfFilter = isset($_GET['shelf']) && $_GET['shelf'] !== '' ? (int) $_GET['shelf'] : null;
-$books = $bookRepository->all($keyword, $branchFilter, $subjectFilter, $shelfFilter);
+$books = $bookRepository->all($keyword ?: null, $branchFilter, $subjectFilter, $shelfFilter);
+$bookCount = count($books);
+$filtersApplied = ($keyword !== null && $keyword !== '') || $branchFilter !== null || $subjectFilter !== null || $shelfFilter !== null;
+$dbPath = null;
+try {
+    $dbRow = $pdo->query('PRAGMA database_list')->fetch(PDO::FETCH_ASSOC);
+    if ($dbRow && isset($dbRow['file'])) {
+        $dbPath = $dbRow['file'];
+    }
+} catch (Throwable $ignored) {
+}
 
 admin_header('Books', 'books');
 admin_alert($_GET['message'] ?? $message);
 admin_alert($_GET['error'] ?? $error, 'danger');
+if (! $filtersApplied && $bookCount <= 1) {
+    admin_alert('Only ' . $bookCount . ' book currently stored. Run "php scripts/seed.php" from src/backend (or use the Reload Sample Data button) to load the full sample catalog.', 'info');
+}
 ?>
 <div class="row g-4">
     <div class="col-lg-4">
         <div class="card">
-            <div class="card-header"><?php echo $bookToEdit ? 'Edit Book' : 'Add Book'; ?></div>
+            <div class="card-header" id="book-form-title"><?php echo $bookToEdit ? 'Edit Book' : 'Add Book'; ?></div>
             <div class="card-body">
-                <form method="post">
-                    <input type="hidden" name="action" value="<?php echo $bookToEdit ? 'update' : 'create'; ?>">
-                    <?php if ($bookToEdit): ?>
-                        <input type="hidden" name="id" value="<?php echo $bookToEdit['id']; ?>">
-                    <?php endif; ?>
+                <form method="post" id="book-form">
+                    <input type="hidden" name="id" id="book-id-field" value="<?php echo htmlspecialchars((string) ($bookToEdit['id'] ?? '')); ?>">
                     <div class="mb-3">
                         <label class="form-label">ISBN</label>
-                        <input type="text" name="isbn" class="form-control" value="<?php echo htmlspecialchars($bookToEdit['isbn'] ?? ''); ?>" required>
+                        <input type="text" name="isbn" id="book-isbn" class="form-control" value="<?php echo htmlspecialchars($bookToEdit['isbn'] ?? ''); ?>" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Title</label>
-                        <input type="text" name="title" class="form-control" value="<?php echo htmlspecialchars($bookToEdit['title'] ?? ''); ?>" required>
+                        <input type="text" name="title" id="book-title" class="form-control" value="<?php echo htmlspecialchars($bookToEdit['title'] ?? ''); ?>" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Author</label>
-                        <input type="text" name="author" class="form-control" value="<?php echo htmlspecialchars($bookToEdit['author'] ?? ''); ?>" required>
+                        <input type="text" name="author" id="book-author" class="form-control" value="<?php echo htmlspecialchars($bookToEdit['author'] ?? ''); ?>" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Publisher</label>
-                        <input type="text" name="publisher" class="form-control" value="<?php echo htmlspecialchars($bookToEdit['publisher'] ?? ''); ?>">
+                        <input type="text" name="publisher" id="book-publisher" class="form-control" value="<?php echo htmlspecialchars($bookToEdit['publisher'] ?? ''); ?>">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Publication Year</label>
-                        <input type="number" name="publication_year" class="form-control" value="<?php echo htmlspecialchars($bookToEdit['publication_year'] ?? ''); ?>">
+                        <input type="number" name="publication_year" id="book-year" class="form-control" value="<?php echo htmlspecialchars($bookToEdit['publication_year'] ?? ''); ?>">
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col">
@@ -146,7 +273,7 @@ admin_alert($_GET['error'] ?? $error, 'danger');
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Subject Area</label>
-                        <select class="form-select" name="subject_id">
+                        <select class="form-select" name="subject_id" id="book-subject">
                             <option value="">General</option>
                             <?php foreach ($subjects as $subject): ?>
                                 <option value="<?php echo $subject['id']; ?>" <?php echo ((int) ($bookToEdit['subject_id'] ?? 0) === (int) $subject['id']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($subject['name']); ?></option>
@@ -156,22 +283,21 @@ admin_alert($_GET['error'] ?? $error, 'danger');
                     <div class="row g-3 mb-3">
                         <div class="col">
                             <label class="form-label">Total Copies</label>
-                            <input type="number" min="1" name="copies_total" class="form-control" value="<?php echo htmlspecialchars($bookToEdit['copies_total'] ?? '1'); ?>">
+                            <input type="number" min="1" name="copies_total" id="book-total" class="form-control" value="<?php echo htmlspecialchars($bookToEdit['copies_total'] ?? '1'); ?>">
                         </div>
                         <div class="col">
                             <label class="form-label">Available</label>
-                            <input type="number" min="0" name="copies_available" class="form-control" value="<?php echo htmlspecialchars($bookToEdit['copies_available'] ?? '1'); ?>">
+                            <input type="number" min="0" name="copies_available" id="book-available" class="form-control" value="<?php echo htmlspecialchars($bookToEdit['copies_available'] ?? '1'); ?>">
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Subjects / Keywords</label>
-                        <input type="text" name="subjects" class="form-control" value="<?php echo htmlspecialchars($bookToEdit['subjects'] ?? ''); ?>">
+                        <input type="text" name="subjects" id="book-subjects" class="form-control" value="<?php echo htmlspecialchars($bookToEdit['subjects'] ?? ''); ?>">
                     </div>
-                    <div class="d-flex justify-content-between">
-                        <button class="btn btn-primary" type="submit"><?php echo $bookToEdit ? 'Update Book' : 'Add Book'; ?></button>
-                        <?php if ($bookToEdit): ?>
-                            <a class="btn btn-outline-secondary" href="/admin/books.php">Cancel</a>
-                        <?php endif; ?>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-primary" type="submit" name="action" value="create" id="book-create-button">Add Book</button>
+                        <button class="btn btn-success" type="submit" name="action" value="update" id="book-update-button" <?php echo $bookToEdit ? '' : 'disabled'; ?>>Update Book</button>
+                        <button class="btn btn-outline-secondary" type="button" id="book-reset-button">Cancel</button>
                     </div>
                 </form>
             </div>
@@ -220,7 +346,18 @@ admin_alert($_GET['error'] ?? $error, 'danger');
             </div>
         </div>
         <div class="card">
-            <div class="card-header">Book List</div>
+            <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>Book List</div>
+                <div class="d-flex flex-wrap align-items-center gap-3">
+                    <small class="text-muted">Showing <?php echo $bookCount; ?> book(s)<?php echo $dbPath ? ' · DB: ' . htmlspecialchars(basename($dbPath)) : ''; ?></small>
+                    <?php if (is_super_admin()): ?>
+                        <form method="post" class="d-inline" onsubmit="return confirm('Re-run the data seeder? This operation is idempotent.');">
+                            <input type="hidden" name="action" value="seed_sample">
+                            <button class="btn btn-sm btn-outline-secondary" type="submit">Reload Sample Data</button>
+                        </form>
+                    <?php endif; ?>
+                </div>
+            </div>
             <div class="table-responsive">
                 <table class="table table-striped mb-0">
                     <thead>
@@ -235,18 +372,32 @@ admin_alert($_GET['error'] ?? $error, 'danger');
                     </thead>
                     <tbody>
                     <?php if (! $books): ?>
-                        <tr><td colspan="7" class="text-muted">No books match the selected filters.</td></tr>
+                        <tr><td colspan="6" class="text-muted">No books match the selected filters.</td></tr>
                     <?php else: ?>
                         <?php foreach ($books as $book): ?>
                             <tr>
                                 <td>
                                     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+        <?php $bookPayload = [
+            'id' => $book['id'],
+            'isbn' => $book['isbn'],
+            'title' => $book['title'],
+            'author' => $book['author'],
+            'publisher' => $book['publisher'],
+            'publication_year' => $book['publication_year'],
+            'copies_total' => $book['copies_total'],
+            'copies_available' => $book['copies_available'],
+            'subjects' => $book['subjects'],
+            'branch_id' => $book['branch_id'],
+            'shelf_id' => $book['shelf_id'],
+            'subject_id' => $book['subject_id'],
+        ]; ?>
                                         <div>
                                             <strong><?php echo htmlspecialchars($book['title']); ?></strong><br>
                                             <small class="text-muted">ISBN: <?php echo htmlspecialchars($book['isbn']); ?></small>
                                         </div>
                                         <div class="d-flex flex-wrap gap-2">
-                                            <a class="btn btn-sm btn-outline-primary" href="/admin/books.php?edit=<?php echo $book['id']; ?>">Edit</a>
+                                            <button type="button" class="btn btn-sm btn-outline-primary book-edit-button" data-book='<?php echo htmlspecialchars(json_encode($bookPayload, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP)); ?>'>Edit</button>
                                             <form class="d-inline" method="post" onsubmit="return confirm('Delete this book?');">
                                                 <input type="hidden" name="action" value="delete">
                                                 <input type="hidden" name="id" value="<?php echo $book['id']; ?>">
@@ -256,8 +407,14 @@ admin_alert($_GET['error'] ?? $error, 'danger');
                                     </div>
                                 </td>
                                 <td><?php echo htmlspecialchars($book['author']); ?></td>
-                                <td><?php echo htmlspecialchars($book['publication_year']); ?></td>
-                                <td><?php echo htmlspecialchars($book['copies_available']); ?> / <?php echo htmlspecialchars($book['copies_total']); ?></td>
+                                <td><?php echo $book['publication_year'] ? htmlspecialchars((string) $book['publication_year']) : '—'; ?></td>
+                                <td>
+                                    <?php if ($book['copies_total'] !== null): ?>
+                                        <?php echo htmlspecialchars((string) $book['copies_available']); ?> / <?php echo htmlspecialchars((string) $book['copies_total']); ?>
+                                    <?php else: ?>
+                                        —
+                                    <?php endif; ?>
+                                </td>
                                 <td>
                                     <?php echo htmlspecialchars($book['branch_name'] ?? '—'); ?><br>
                                     <small class="text-muted">
@@ -301,8 +458,117 @@ document.addEventListener('DOMContentLoaded', () => {
             shelfSelect.value = activeStillVisible ? currentValue : '';
         };
         branchSelect.addEventListener('change', refreshOptions);
+        branchSelect.__refreshShelves = refreshOptions;
+        branchSelect.__shelfTarget = shelfSelect;
         refreshOptions();
     });
+
+    const form = document.getElementById('book-form');
+    if (! form) {
+        return;
+    }
+    const elements = {
+        id: document.getElementById('book-id-field'),
+        isbn: document.getElementById('book-isbn'),
+        title: document.getElementById('book-title'),
+        author: document.getElementById('book-author'),
+        publisher: document.getElementById('book-publisher'),
+        year: document.getElementById('book-year'),
+        branch: document.getElementById('book-branch'),
+        shelf: document.getElementById('book-shelf'),
+        subject: document.getElementById('book-subject'),
+        total: document.getElementById('book-total'),
+        available: document.getElementById('book-available'),
+        subjects: document.getElementById('book-subjects'),
+    };
+    const formTitle = document.getElementById('book-form-title');
+    const defaultTitle = formTitle ? formTitle.textContent : 'Add Book';
+    const updateButton = document.getElementById('book-update-button');
+    const createButton = document.getElementById('book-create-button');
+    const resetButton = document.getElementById('book-reset-button');
+
+    const applyBranchAndShelf = (branchId, shelfId) => {
+        if (elements.branch) {
+            elements.branch.value = branchId ?? '';
+            if (typeof elements.branch.__refreshShelves === 'function') {
+                elements.branch.__refreshShelves();
+            }
+        }
+        if (elements.shelf) {
+            elements.shelf.value = shelfId ?? '';
+        }
+    };
+
+    const fillForm = (book) => {
+        if (! book) {
+            return;
+        }
+        if (elements.id) {
+            elements.id.value = book.id ?? '';
+        }
+        if (elements.isbn) {
+            elements.isbn.value = book.isbn ?? '';
+        }
+        if (elements.title) {
+            elements.title.value = book.title ?? '';
+        }
+        if (elements.author) {
+            elements.author.value = book.author ?? '';
+        }
+        if (elements.publisher) {
+            elements.publisher.value = book.publisher ?? '';
+        }
+        if (elements.year) {
+            elements.year.value = book.publication_year ?? '';
+        }
+        if (elements.total) {
+            elements.total.value = book.copies_total ?? '1';
+        }
+        if (elements.available) {
+            elements.available.value = book.copies_available ?? '1';
+        }
+        if (elements.subjects) {
+            elements.subjects.value = book.subjects ?? '';
+        }
+        if (elements.subject) {
+            elements.subject.value = book.subject_id ?? '';
+        }
+        applyBranchAndShelf(book.branch_id ?? '', book.shelf_id ?? '');
+    };
+
+    const setEditingState = (editing) => {
+        if (updateButton) {
+            updateButton.disabled = ! editing;
+        }
+        if (formTitle) {
+            formTitle.textContent = editing ? 'Edit Book' : defaultTitle;
+        }
+    };
+
+    document.querySelectorAll('.book-edit-button').forEach((button) => {
+        button.addEventListener('click', () => {
+            const payload = button.dataset.book ? JSON.parse(button.dataset.book) : null;
+            fillForm(payload);
+            setEditingState(true);
+        });
+    });
+
+    if (resetButton) {
+        resetButton.addEventListener('click', () => {
+            form.reset();
+            if (elements.id) {
+                elements.id.value = '';
+            }
+            if (elements.branch && typeof elements.branch.__refreshShelves === 'function') {
+                elements.branch.__refreshShelves();
+            }
+            setEditingState(false);
+        });
+    }
+
+    if (elements.id && elements.id.value) {
+        setEditingState(true);
+    }
 });
 </script>
 <?php admin_footer(); ?>
