@@ -4,7 +4,10 @@
 		{
 			"label": "Run PHP Dev Server",
 			"type": "shell",
-			"command": "cd src/backend && php -S localhost:8000 -t public public/index.php"
+			"command": "php -S localhost:8080 -t public public/index.php",
+			"options": {
+				"cwd": "${workspaceFolder}/src/backend"
+			}
 		}
 	]
 }
