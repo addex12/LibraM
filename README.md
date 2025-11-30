@@ -26,13 +26,13 @@ LibraM is the production-ready Library Management System experience packaged wit
       <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google badge" height="44" />
    </a>
    <a href="https://www.credly.com/users/adugnagizaw" title="Cisco Qualified Data Science Blue Belt, Computer Hardware Basics">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/1/1f/Cisco_logo.svg" alt="Cisco badge" height="44" />
+      <img src="https://img.shields.io/badge/Cisco%20Blue%20Belt-1BA0D7?logo=cisco&logoColor=white" alt="Cisco badge" height="28" />
    </a>
    <a href="https://www.credly.com/users/adugnagizaw" title="ISC2 Candidate">
-      <img src="https://upload.wikimedia.org/wikipedia/en/e/e0/ISC2_logo.png" alt="ISC2 badge" height="44" />
+      <img src="https://img.shields.io/badge/ISC2%20Candidate-006241?logo=isc2&logoColor=white" alt="ISC2 badge" height="28" />
    </a>
    <a href="https://www.credly.com/users/adugnagizaw" title="Applied Data Science Lab (WorldQuant University)">
-      <img src="https://upload.wikimedia.org/wikipedia/en/4/4f/WorldQuant_University_logo.png" alt="WorldQuant University badge" height="44" />
+      <img src="https://img.shields.io/badge/WorldQuant%20University-222222?logoColor=white" alt="WorldQuant University badge" height="28" />
    </a>
    <a href="https://www.credly.com/users/adugnagizaw" title="Microsoft UX Design Professional Certificate">
       <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" alt="Microsoft badge" height="44" />
