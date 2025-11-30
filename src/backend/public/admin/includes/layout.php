@@ -82,6 +82,26 @@ HTML;
             display: flex;
             gap: .5rem;
         }
+        .book-table td,
+        .book-table th {
+            vertical-align: middle;
+        }
+        .book-table .book-title-cell,
+        .book-table .book-location,
+        .book-table .book-subject-cell {
+            white-space: normal;
+        }
+        .book-table .book-availability {
+            white-space: nowrap;
+        }
+        .book-table .book-location .badge {
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        .book-table .book-location .text-muted span {
+            display: inline-block;
+            margin-right: .3rem;
+        }
         .avatar-chip {
             width: 42px;
             height: 42px;
