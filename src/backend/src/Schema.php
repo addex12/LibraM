@@ -2,7 +2,7 @@
 
 /**
  * Developer: Adugna Gizaw
- * Phone: +251911144198
+ * Phone: +251911144168
  * Email: gizawadugna@gmail.com
  */
 
@@ -163,6 +163,8 @@ class Schema
         self::addColumn($pdo, 'members', 'phone TEXT');
         self::addColumn($pdo, 'members', 'address TEXT');
         self::addColumn($pdo, 'members', 'status TEXT NOT NULL DEFAULT "active"');
+        self::addColumn($pdo, 'members', 'password_hash TEXT');
+        self::addColumn($pdo, 'staff', 'password_hash TEXT');
     }
 
     private static function addColumn(PDO $pdo, string $table, string $definition): void

@@ -2,13 +2,14 @@
 
 /**
  * Developer: Adugna Gizaw
- * Phone: +251911144198
+ * Phone: +251911144168
  * Email: gizawadugna@gmail.com
  */
 
 declare(strict_types=1);
 
 use App\Repositories\MemberRepository;
+use App\Services\PortalAuthenticator;
 
 $pdo = require __DIR__ . '/../../bootstrap.php';
 require __DIR__ . '/includes/auth.php';
@@ -23,11 +24,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? 'create';
     try {
         if ($action === 'create') {
+            $password = $_POST['password'] ?? '';
+            $confirmPassword = $_POST['confirm_password'] ?? '';
+            if ($password === '' || $confirmPassword === '') {
+                throw new RuntimeException('Password and confirmation are required.');
+            }
+            if (strlen($password) < 8) {
+                throw new RuntimeException('Password must be at least 8 characters.');
+            }
+            if ($password !== $confirmPassword) {
+                throw new RuntimeException('Passwords do not match.');
+            }
             $memberRepository->create([
                 'student_id' => trim($_POST['student_id'] ?? ''),
                 'full_name' => trim($_POST['full_name'] ?? ''),
                 'faculty' => trim($_POST['faculty'] ?? ''),
                 'email' => trim($_POST['email'] ?? ''),
+                'password_hash' => PortalAuthenticator::hashPassword($password),
             ]);
             header('Location: /admin/members.php?message=' . urlencode('Member added successfully.'));
             exit;
@@ -35,12 +48,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($action === 'update') {
             $id = (int) ($_POST['id'] ?? 0);
-            $memberRepository->update($id, [
+            $password = $_POST['password'] ?? '';
+            $confirmPassword = $_POST['confirm_password'] ?? '';
+            $payload = [
                 'student_id' => trim($_POST['student_id'] ?? ''),
                 'full_name' => trim($_POST['full_name'] ?? ''),
                 'faculty' => trim($_POST['faculty'] ?? ''),
                 'email' => trim($_POST['email'] ?? ''),
-            ]);
+            ];
+            if ($password !== '' || $confirmPassword !== '') {
+                if (strlen($password) < 8) {
+                    throw new RuntimeException('Password must be at least 8 characters.');
+                }
+                if ($password !== $confirmPassword) {
+                    throw new RuntimeException('Passwords do not match.');
+                }
+                $payload['password_hash'] = PortalAuthenticator::hashPassword($password);
+            }
+            $memberRepository->update($id, $payload);
             header('Location: /admin/members.php?message=' . urlencode('Member updated successfully.'));
             exit;
         }
@@ -89,6 +114,17 @@ admin_alert($_GET['error'] ?? $error, 'danger');
                     <div class="mb-3">
                         <label class="form-label">Email</label>
                         <input type="email" name="email" class="form-control" value="<?php echo htmlspecialchars($memberToEdit['email'] ?? ''); ?>" required>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col">
+                            <label class="form-label">Portal Password</label>
+                            <input type="password" name="password" class="form-control" minlength="8" <?php echo $memberToEdit ? '' : 'required'; ?>>
+                            <small class="text-muted"><?php echo $memberToEdit ? 'Leave blank to keep the current password.' : 'Required for new members.'; ?></small>
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Confirm Password</label>
+                            <input type="password" name="confirm_password" class="form-control" minlength="8" <?php echo $memberToEdit ? '' : 'required'; ?>>
+                        </div>
                     </div>
                     <div class="d-flex justify-content-between">
                         <button class="btn btn-primary" type="submit"><?php echo $memberToEdit ? 'Update Member' : 'Add Member'; ?></button>

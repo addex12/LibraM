@@ -2,7 +2,7 @@
 
 /**
  * Developer: Adugna Gizaw
- * Phone: +251911144198
+ * Phone: +251911144168
  * Email: gizawadugna@gmail.com
  */
 
@@ -23,7 +23,7 @@ $maintenanceTasks = [
     'seed-demo' => [
         'label' => 'Seed demo catalog + patrons',
         'script' => realpath(__DIR__ . '/../../scripts/seed.php') ?: __DIR__ . '/../../scripts/seed.php',
-        'summary' => 'Populates books, members, and sample loans for test environments.',
+        'summary' => 'Populates books, members, and baseline loans for test environments.',
         'command' => 'php src/backend/scripts/seed.php',
     ],
 ];
@@ -337,7 +337,7 @@ admin_header('Operations Center', 'operations');
                 <?php if ($logTail): ?>
                     <pre class="bg-dark text-white small p-3 rounded overflow-auto" style="max-height: 300px;"><?php echo htmlspecialchars(implode("\n", $logTail)); ?></pre>
                 <?php else: ?>
-                    <p class="text-muted mb-0">No entries found inside <code><?php echo htmlspecialchars($logFileName); ?></code>. Run <code>composer notify-overdue</code> to create sample activity.</p>
+                    <p class="text-muted mb-0">No entries found inside <code><?php echo htmlspecialchars($logFileName); ?></code>. Run <code>composer notify-overdue</code> to generate fresh activity.</p>
                 <?php endif; ?>
                 </div>
         </div>

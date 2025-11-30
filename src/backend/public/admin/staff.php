@@ -2,7 +2,7 @@
 
 /**
  * Developer: Adugna Gizaw
- * Phone: +251911144198
+ * Phone: +251911144168
  * Email: gizawadugna@gmail.com
  */
 
@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 use App\Repositories\BranchRepository;
 use App\Repositories\StaffRepository;
+use App\Services\PortalAuthenticator;
 
 $pdo = require __DIR__ . '/../../bootstrap.php';
 require __DIR__ . '/includes/auth.php';
@@ -32,6 +33,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'phone' => trim($_POST['phone'] ?? ''),
             'branch_id' => $_POST['branch_id'] !== '' ? (int) $_POST['branch_id'] : null,
         ];
+        $password = $_POST['password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
+        if ($password !== '' || $confirmPassword !== '') {
+            if (strlen($password) < 8) {
+                throw new RuntimeException('Password must be at least 8 characters long.');
+            }
+            if ($password !== $confirmPassword) {
+                throw new RuntimeException('Passwords do not match.');
+            }
+            $payload['password_hash'] = PortalAuthenticator::hashPassword($password);
+        } elseif ($action === 'create') {
+            throw new RuntimeException('Set an initial password for every staff account.');
+        }
         if ($action === 'create') {
             $staffRepository->create($payload);
             header('Location: /admin/staff.php?message=' . urlencode('Staff member added.'));
@@ -99,6 +113,17 @@ admin_alert($_GET['error'] ?? $error, 'danger');
                         <div class="col">
                             <label class="form-label">Phone</label>
                             <input type="text" name="phone" class="form-control" value="<?php echo htmlspecialchars($staffToEdit['phone'] ?? ''); ?>">
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col">
+                            <label class="form-label">Portal Password</label>
+                            <input type="password" name="password" class="form-control" minlength="8" <?php echo $staffToEdit ? '' : 'required'; ?>>
+                            <small class="text-muted"><?php echo $staffToEdit ? 'Leave blank to keep the current password.' : 'Required for new accounts.'; ?></small>
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Confirm Password</label>
+                            <input type="password" name="confirm_password" class="form-control" minlength="8" <?php echo $staffToEdit ? '' : 'required'; ?>>
                         </div>
                     </div>
                     <div class="mb-3">

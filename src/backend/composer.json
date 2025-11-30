@@ -1,6 +1,6 @@
 {
   "name": "university/library-backend",
-  "description": "PHP API for the Library Management System graduation project",
+  "description": "PHP API for the Library Management System project",
   "type": "project",
   "require": {
     "php": "^8.1",

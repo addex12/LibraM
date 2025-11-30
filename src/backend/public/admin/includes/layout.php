@@ -2,7 +2,7 @@
 
 /**
  * Developer: Adugna Gizaw
- * Phone: +251911144198
+ * Phone: +251911144168
  * Email: gizawadugna@gmail.com
  */
 
@@ -113,7 +113,7 @@ HTML;
 <body>
 HTML;
         echo $head;
-        echo '<nav class="navbar navbar-expand-lg bg-dark navbar-dark mb-4"><div class="container-fluid"><a class="navbar-brand" href="/admin/index.php">Library Admin</a><div class="collapse navbar-collapse show"><ul class="navbar-nav me-auto mb-2 mb-lg-0">';
+        echo '<nav class="navbar navbar-expand-lg bg-dark navbar-dark mb-4"><div class="container-fluid"><a class="navbar-brand" href="/admin/index.php">LibraM Admin</a><div class="collapse navbar-collapse show"><ul class="navbar-nav me-auto mb-2 mb-lg-0">';
         foreach ($nav as $key => $item) {
             $activeClass = $key === $active ? ' active' : '';
             echo '<li class="nav-item"><a class="nav-link' . $activeClass . '" href="' . $item['href'] . '">' . htmlspecialchars($item['label']) . '</a></li>';
@@ -123,7 +123,7 @@ HTML;
             $roleBadge = is_super_admin() ? '<span class="badge text-bg-warning text-dark">Super Admin</span>' : '<span class="badge text-bg-secondary">Admin</span>';
             echo '<div class="d-flex align-items-center gap-3"><span class="text-white-50 small">' . htmlspecialchars(admin_username()) . '</span>' . $roleBadge . '<a class="btn btn-sm btn-outline-light" href="/admin/logout.php">Logout</a></div>';
         } else {
-            echo '<a class="btn btn-sm btn-outline-light" href="/admin/login.php">Login</a>';
+            echo '<a class="btn btn-sm btn-outline-light" href="/login.php?account=admin">Login</a>';
         }
         echo '</div></nav><main class="container pb-5">';
     }

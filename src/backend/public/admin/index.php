@@ -1,7 +1,7 @@
 <?php
 /**
  * Developer: Adugna Gizaw
- * Phone: +251911144198
+ * Phone: +251911144168
  * Email: gizawadugna@gmail.com
  */
 
@@ -49,8 +49,8 @@ $engagementRate = $memberCount > 0 ? round(($loanCount / $memberCount) * 100) : 
 $loanRepository = new LoanRepository($pdo);
 $recentLoans = array_slice($loanRepository->all(), 0, 5);
 $userSessionRepository = new UserSessionRepository($pdo);
-$staffSamples = $userSessionRepository->recent(4, ['Admin', 'Super Admin']);
-$studentSamples = $userSessionRepository->recent(4, ['Admin', 'Super Admin'], false);
+$staffSessions = $userSessionRepository->recent(4, ['Admin', 'Super Admin']);
+$memberSessions = $userSessionRepository->recent(4, ['Admin', 'Super Admin'], false);
 $quickActions = [
     ['label' => 'Add Book', 'href' => '/admin/books.php', 'icon' => 'bi-book'],
     ['label' => 'Register Member', 'href' => '/admin/members.php', 'icon' => 'bi-person-plus'],
@@ -58,7 +58,7 @@ $quickActions = [
     ['label' => 'View Reports', 'href' => '/admin/reports.php', 'icon' => 'bi-graph-up'],
 ];
 
-admin_header('Library Admin Dashboard', 'dashboard');
+admin_header('LibraM Admin Dashboard', 'dashboard');
 ?>
 <div class="row g-4 mb-4">
     <div class="col-md-3">
@@ -109,24 +109,24 @@ admin_header('Library Admin Dashboard', 'dashboard');
             <div class="card-header d-flex justify-content-between align-items-center">
                 <div>
                     <h5 class="mb-0">User sign-ins</h5>
-                    <small class="text-muted">Sample activity from staff and admins</small>
+                    <small class="text-muted">Latest activity from staff and admins</small>
                 </div>
-                <span class="badge badge-soft">Live Preview</span>
+                <span class="badge badge-soft">Live Feed</span>
             </div>
             <div class="card-body">
-                <?php foreach ($staffSamples as $sample): ?>
+                <?php foreach ($staffSessions as $session): ?>
                     <div class="activity-row">
-                        <div class="avatar-chip"><?php echo htmlspecialchars(badge_initials($sample['full_name'])); ?></div>
+                        <div class="avatar-chip"><?php echo htmlspecialchars(badge_initials($session['full_name'])); ?></div>
                         <div class="flex-grow-1">
                             <div class="d-flex justify-content-between flex-wrap gap-2">
                                 <div>
-                                    <p class="mb-0 fw-semibold"><?php echo htmlspecialchars($sample['full_name']); ?></p>
-                                    <small class="text-muted"><?php echo htmlspecialchars($sample['role']); ?> • <?php echo htmlspecialchars($sample['identifier']); ?></small>
+                                    <p class="mb-0 fw-semibold"><?php echo htmlspecialchars($session['full_name']); ?></p>
+                                    <small class="text-muted"><?php echo htmlspecialchars($session['role']); ?> • <?php echo htmlspecialchars($session['identifier']); ?></small>
                                 </div>
-                                <small class="text-muted"><?php echo htmlspecialchars(format_session_time($sample['last_login_at'] ?? null)); ?></small>
+                                <small class="text-muted"><?php echo htmlspecialchars(format_session_time($session['last_login_at'] ?? null)); ?></small>
                             </div>
-                            <p class="mb-0 text-body-secondary"><?php echo htmlspecialchars($sample['usage_summary']); ?></p>
-                            <span class="badge text-bg-light text-dark mt-2"><?php echo htmlspecialchars($sample['channel']); ?></span>
+                            <p class="mb-0 text-body-secondary"><?php echo htmlspecialchars($session['usage_summary']); ?></p>
+                            <span class="badge text-bg-light text-dark mt-2"><?php echo htmlspecialchars($session['channel']); ?></span>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -197,24 +197,24 @@ admin_header('Library Admin Dashboard', 'dashboard');
             <div class="card-header d-flex justify-content-between align-items-center">
                 <div>
                     <h5 class="mb-0">Member spotlight</h5>
-                    <small class="text-muted">Sample journeys from students</small>
+                    <small class="text-muted">Real journeys from students</small>
                 </div>
-                <span class="badge text-bg-primary">Stories</span>
+                <span class="badge text-bg-primary">Live Stories</span>
             </div>
             <div class="card-body">
-                <?php foreach ($studentSamples as $sample): ?>
+                <?php foreach ($memberSessions as $session): ?>
                     <div class="activity-row">
-                        <div class="avatar-chip"><?php echo htmlspecialchars(badge_initials($sample['full_name'])); ?></div>
+                        <div class="avatar-chip"><?php echo htmlspecialchars(badge_initials($session['full_name'])); ?></div>
                         <div class="flex-grow-1">
                             <div class="d-flex justify-content-between flex-wrap gap-2">
                                 <div>
-                                    <p class="mb-0 fw-semibold"><?php echo htmlspecialchars($sample['full_name']); ?></p>
-                                    <small class="text-muted"><?php echo htmlspecialchars($sample['identifier']); ?></small>
+                                    <p class="mb-0 fw-semibold"><?php echo htmlspecialchars($session['full_name']); ?></p>
+                                    <small class="text-muted"><?php echo htmlspecialchars($session['identifier']); ?></small>
                                 </div>
-                                <small class="text-muted"><?php echo htmlspecialchars(format_session_time($sample['last_login_at'] ?? null)); ?></small>
+                                <small class="text-muted"><?php echo htmlspecialchars(format_session_time($session['last_login_at'] ?? null)); ?></small>
                             </div>
-                            <p class="mb-0 text-body-secondary"><?php echo htmlspecialchars($sample['usage_summary']); ?></p>
-                            <span class="badge text-bg-light text-dark mt-2"><?php echo htmlspecialchars($sample['channel']); ?></span>
+                            <p class="mb-0 text-body-secondary"><?php echo htmlspecialchars($session['usage_summary']); ?></p>
+                            <span class="badge text-bg-light text-dark mt-2"><?php echo htmlspecialchars($session['channel']); ?></span>
                         </div>
                     </div>
                 <?php endforeach; ?>

@@ -2,7 +2,7 @@
 
 /**
  * Developer: Adugna Gizaw
- * Phone: +251911144198
+ * Phone: +251911144168
  * Email: gizawadugna@gmail.com
  */
 
@@ -105,10 +105,10 @@ function public_header(string $title): void
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="/">
-                <span>University Library</span>
+                <span>LibraM Library Management System</span>
             </a>
             <div class="d-flex gap-2">
-                <a class="btn btn-sm btn-light" href="/admin/index.php">Admin Portal</a>
+                <a class="btn btn-sm btn-light" href="/login.php">Login</a>
                 <a class="btn btn-sm btn-outline-light" href="/docs/README.html" target="_blank">Docs</a>
             </div>
         </div>
@@ -140,7 +140,7 @@ function public_footer(): void
     </main>
     <footer class="bg-white border-top py-3 mt-4">
         <div class="container text-center text-muted small">
-            &copy; <?php echo date('Y'); ?> University Library. All rights reserved.
+            &copy; <?php echo date('Y'); ?> LibraM Library Management System. All rights reserved.
         </div>
     </footer>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

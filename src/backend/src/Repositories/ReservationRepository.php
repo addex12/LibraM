@@ -2,7 +2,7 @@
 
 /**
  * Developer: Adugna Gizaw
- * Phone: +251911144198
+ * Phone: +251911144168
  * Email: gizawadugna@gmail.com
  */
 
@@ -59,6 +59,19 @@ class ReservationRepository
         ]);
 
         return $this->find((int) $this->pdo->lastInsertId());
+    }
+
+    public function forMember(int $memberId): array
+    {
+        $sql = 'SELECT reservations.*, books.title AS book_title
+                FROM reservations
+                JOIN books ON books.id = reservations.book_id
+                WHERE reservations.member_id = :member
+                ORDER BY reservations.reserved_on DESC';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute(['member' => $memberId]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function update(int $id, array $data): ?array

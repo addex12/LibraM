@@ -2,7 +2,7 @@
 
 /**
  * Developer: Adugna Gizaw
- * Phone: +251911144198
+ * Phone: +251911144168
  * Email: gizawadugna@gmail.com
  */
 
@@ -12,6 +12,7 @@ use App\Repositories\BookRepository;
 use App\Repositories\LoanRepository;
 use App\Repositories\MemberRepository;
 use App\Repositories\UserSessionRepository;
+use App\Services\PortalAuthenticator;
 
 /**
  * Escape output for HTML contexts, normalizing scalars to strings first.
@@ -39,7 +40,14 @@ function readable_login(string $timestamp): string
     return $time ? date('M j · g:i A', $time) : $timestamp;
 }
 
+function normalize_identifier(string $value): string
+{
+    return strtoupper(trim($value));
+}
+
 session_start();
+
+require_once __DIR__ . '/includes/portal.php';
 
 $pdo = require __DIR__ . '/../bootstrap.php';
 
@@ -73,29 +81,45 @@ if ($method === 'POST') {
     try {
         switch ($action) {
             case 'register_member':
-                $studentId = trim($_POST['student_id'] ?? '');
+                $studentId = normalize_identifier($_POST['student_id'] ?? '');
                 $fullName = trim($_POST['full_name'] ?? '');
                 $faculty = trim($_POST['faculty'] ?? '');
                 $email = trim($_POST['email'] ?? '');
-                if (! $studentId || ! $fullName || ! $faculty || ! $email) {
+                $password = $_POST['password'] ?? '';
+                $confirmPassword = $_POST['confirm_password'] ?? '';
+                if (! $studentId || ! $fullName || ! $faculty || ! $email || ! $password || ! $confirmPassword) {
                     throw new RuntimeException('All member fields are required.');
+                }
+                if (strlen($password) < 8) {
+                    throw new RuntimeException('Password must be at least 8 characters.');
+                }
+                if ($password !== $confirmPassword) {
+                    throw new RuntimeException('Passwords do not match.');
                 }
                 if ($memberRepository->findByStudentId($studentId)) {
                     throw new RuntimeException('Student ID already registered.');
                 }
-                $memberRepository->create([
+                $member = $memberRepository->create([
                     'student_id' => $studentId,
                     'full_name' => $fullName,
                     'faculty' => $faculty,
                     'email' => $email,
+                    'password_hash' => PortalAuthenticator::hashPassword($password),
                 ]);
-                set_flash('success', 'You are now registered as a library member.');
+                $_SESSION['member_auth'] = [
+                    'id' => (int) $member['id'],
+                    'student_id' => $member['student_id'],
+                    'full_name' => $member['full_name'],
+                    'faculty' => $member['faculty'],
+                    'email' => $member['email'],
+                ];
+                set_flash('success', 'You are now registered and signed in as a library member.');
                 header('Location: /');
                 exit;
 
             case 'borrow_book':
                 $bookId = (int) ($_POST['book_id'] ?? 0);
-                $studentId = trim($_POST['student_id'] ?? '');
+                $studentId = normalize_identifier($_POST['student_id'] ?? '');
                 $borrowedOn = $_POST['borrowed_on'] ?: date('Y-m-d');
                 $dueOn = $_POST['due_on'] ?: date('Y-m-d', strtotime('+7 days'));
                 if (! $bookId || ! $studentId) {
@@ -118,6 +142,7 @@ if ($method === 'POST') {
                 set_flash('success', 'Borrow request recorded. Please collect your book from the circulation desk.');
                 header('Location: /');
                 exit;
+
         }
     } catch (Throwable $throwable) {
         set_flash('danger', $throwable->getMessage());
@@ -133,8 +158,9 @@ $availableBooks = array_filter($catalog, fn ($book) => (int) $book['copies_avail
 $members = $memberRepository->all();
 $memberCount = count($members);
 $loans = $loanRepository->all();
-$activeLoanCount = count(array_filter($loans, static fn ($loan) => ($loan['status'] ?? 'borrowed') === 'borrowed'));
-$overdueCount = count(array_filter($loans, static fn ($loan) => ($loan['status'] ?? '') === 'borrowed' && strtotime($loan['due_on']) < time()));
+$activeLoanStatuses = ['borrowed', 'overdue'];
+$activeLoanCount = count(array_filter($loans, static fn ($loan) => in_array($loan['status'] ?? 'borrowed', $activeLoanStatuses, true)));
+$overdueCount = count(array_filter($loans, static fn ($loan) => in_array($loan['status'] ?? '', $activeLoanStatuses, true) && strtotime($loan['due_on']) < time()));
 $copiesAvailable = array_sum(array_map(static fn ($book) => (int) $book['copies_available'], $catalog));
 $copiesTotal = array_sum(array_map(static fn ($book) => (int) $book['copies_total'], $catalog));
 $heroStats = [
@@ -143,8 +169,9 @@ $heroStats = [
     ['label' => 'Registered members', 'value' => number_format($memberCount), 'meta' => 'Students, staff & alumni'],
     ['label' => 'Active loans', 'value' => number_format($activeLoanCount), 'meta' => number_format($overdueCount) . ' due soon'],
 ];
-$sampleStories = $userSessionRepository->recent(4, ['Admin', 'Super Admin'], false);
+$featuredJourneys = $userSessionRepository->recent(4, ['Admin', 'Super Admin'], false);
 $channelStats = $userSessionRepository->channelStats();
+$memberSession = member_session();
 
 $lookupStudent = trim($_GET['lookup_student'] ?? '');
 $lookupMember = null;
@@ -156,7 +183,15 @@ if ($lookupStudent !== '') {
     }
 }
 
-public_header('Library Service Portal');
+if ($lookupStudent === '' && $memberSession) {
+    $lookupStudent = $memberSession['student_id'];
+    $lookupMember = $memberRepository->find((int) $memberSession['id']);
+    if ($lookupMember) {
+        $lookupLoans = $loanRepository->forMember((int) $memberSession['id']);
+    }
+}
+
+public_header('LibraM Library Management System');
 public_flash($flash);
 ?>
 <section class="hero-panel mb-4">
@@ -167,7 +202,6 @@ public_flash($flash);
             <p class="text-white-75 mb-4">Students, researchers, and librarians collaborate here daily. Search the live catalog, request pickups, and follow your loan history in real time.</p>
             <div class="d-flex flex-wrap gap-2">
                 <a class="btn btn-light" href="#catalog">Browse catalog</a>
-                <a class="btn btn-outline-light" href="/admin/login.php">Staff login</a>
             </div>
         </div>
     </div>
@@ -258,6 +292,15 @@ public_flash($flash);
                             <label class="form-label">Email</label>
                             <input type="email" name="email" class="form-control" required>
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" name="password" class="form-control" minlength="8" required>
+                            <small class="text-muted">Minimum 8 characters.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Confirm Password</label>
+                            <input type="password" name="confirm_password" class="form-control" minlength="8" required>
+                        </div>
                         <button class="btn btn-success w-100" type="submit">Register</button>
                     </form>
                 </div>
@@ -296,6 +339,7 @@ public_flash($flash);
                     <?php endif; ?>
                 </div>
             </div>
+            
             <div class="card">
                 <div class="card-header">Check Your Loans</div>
                 <div class="card-body">
@@ -353,25 +397,25 @@ public_flash($flash);
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <div>
-                        <h5 class="mb-0">Sample User Journeys</h5>
-                        <small class="text-muted">Live-inspired data showing how people sign in and use the library.</small>
+                        <h5 class="mb-0">User Activity Feed</h5>
+                        <small class="text-muted">Live usage data showing how people sign in and work with the library.</small>
                     </div>
                     <span class="badge text-bg-primary">Preview</span>
                 </div>
                 <div class="card-body">
-                    <?php foreach ($sampleStories as $story): ?>
+                    <?php foreach ($featuredJourneys as $journey): ?>
                         <div class="activity-row">
-                            <div class="avatar-chip"><?php echo e(initials($story['full_name'])); ?></div>
+                            <div class="avatar-chip"><?php echo e(initials($journey['full_name'])); ?></div>
                             <div class="flex-grow-1">
                                 <div class="d-flex justify-content-between flex-wrap gap-2">
                                     <div>
-                                        <p class="mb-0 fw-semibold"><?php echo e($story['full_name']); ?></p>
-                                        <small class="text-muted">ID <?php echo e($story['identifier']); ?></small>
+                                        <p class="mb-0 fw-semibold"><?php echo e($journey['full_name']); ?></p>
+                                        <small class="text-muted">ID <?php echo e($journey['identifier']); ?></small>
                                     </div>
-                                    <small class="text-muted"><?php echo e(readable_login($story['last_login_at'])); ?></small>
+                                    <small class="text-muted"><?php echo e(readable_login($journey['last_login_at'])); ?></small>
                                 </div>
-                                <p class="mb-0 text-body-secondary"><?php echo e($story['usage_summary']); ?></p>
-                                <span class="activity-pill"><?php echo e($story['channel']); ?></span>
+                                <p class="mb-0 text-body-secondary"><?php echo e($journey['usage_summary']); ?></p>
+                                <span class="activity-pill"><?php echo e($journey['channel']); ?></span>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -382,7 +426,7 @@ public_flash($flash);
             <div class="card h-100">
                 <div class="card-header">
                     <h5 class="mb-0">Sign-in Channels</h5>
-                    <small class="text-muted">Where the sample users connected from</small>
+                    <small class="text-muted">Where users recently connected from</small>
                 </div>
                 <div class="card-body">
                     <?php foreach ($channelStats as $stat): ?>
@@ -391,7 +435,7 @@ public_flash($flash);
                                 <p class="mb-0 fw-semibold"><?php echo e($stat['channel']); ?></p>
                                 <small class="text-muted">Experience snapshot</small>
                             </div>
-                            <span class="badge rounded-pill text-bg-light text-dark"><?php echo e($stat['total']); ?> sample user(s)</span>
+                            <span class="badge rounded-pill text-bg-light text-dark"><?php echo e($stat['total']); ?> active session(s)</span>
                         </div>
                     <?php endforeach; ?>
                     <hr>

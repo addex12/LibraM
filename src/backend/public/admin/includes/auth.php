@@ -2,7 +2,7 @@
 
 /**
  * Developer: Adugna Gizaw
- * Phone: +251911144198
+ * Phone: +251911144168
  * Email: gizawadugna@gmail.com
  */
 
@@ -86,7 +86,7 @@ function is_super_admin(): bool
 function require_admin_login(): void
 {
     if (! admin_logged_in()) {
-        header('Location: /admin/login.php');
+        header('Location: /login.php?account=admin');
         exit;
     }
 }
