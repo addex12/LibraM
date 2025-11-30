@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * Developer: Adugna Gizaw
+ * Phone: +251911144198
+ * Email: gizawadugna@gmail.com
+ */
+
 use App\Database;
 use App\Schema;
 use Dotenv\Dotenv;
