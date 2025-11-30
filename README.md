@@ -1,4 +1,4 @@
-# Library Management System Graduation Project
+# Library Management System Project
 
 This repository collects every asset required for a University-level Library Management System submission, including formal documentation and a runnable application that can be demonstrated entirely from a PHP stack (no external frameworks required on the client).
 
