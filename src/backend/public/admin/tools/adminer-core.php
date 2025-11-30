@@ -1,4 +1,12 @@
 <?php
+
+/**
+ * Developer: Adugna Gizaw
+ * Phone: +251911144198
+ * Email: gizawadugna@gmail.com
+ */
+
+
 /** Adminer - Compact database management
 * @link https://www.adminer.org/
 * @author Jakub Vrana, https://www.vrana.cz/
