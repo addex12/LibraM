@@ -31,6 +31,16 @@ if (! function_exists('admin_header')) {
         if (is_super_admin()) {
             $nav['operations'] = ['label' => 'Operations', 'href' => '/admin/operations.php'];
         }
+
+        if (admin_is_staff_operator()) {
+            $allowedKeys = staff_allowed_admin_nav_keys();
+            $nav = array_filter(
+                $nav,
+                static fn ($item, $key) => in_array($key, $allowedKeys, true),
+                ARRAY_FILTER_USE_BOTH
+            );
+        }
+
         $head = <<<HTML
 <!DOCTYPE html>
 <html lang="en">
@@ -139,9 +149,16 @@ HTML;
             echo '<li class="nav-item"><a class="nav-link' . $activeClass . '" href="' . $item['href'] . '">' . htmlspecialchars($item['label']) . '</a></li>';
         }
         echo '</ul></div>';
-        if (admin_logged_in()) {
-            $roleBadge = is_super_admin() ? '<span class="badge text-bg-warning text-dark">Super Admin</span>' : '<span class="badge text-bg-secondary">Admin</span>';
-            echo '<div class="d-flex align-items-center gap-3"><span class="text-white-50 small">' . htmlspecialchars(admin_username()) . '</span>' . $roleBadge . '<a class="btn btn-sm btn-outline-light" href="/admin/logout.php">Logout</a></div>';
+        $operator = admin_operator();
+        if ($operator) {
+            if ($operator['role'] === 'super_admin') {
+                $roleBadge = '<span class="badge text-bg-warning text-dark">Super Admin</span>';
+            } elseif ($operator['role'] === 'staff') {
+                $roleBadge = '<span class="badge text-bg-info text-dark">Staff</span>';
+            } else {
+                $roleBadge = '<span class="badge text-bg-secondary">Admin</span>';
+            }
+            echo '<div class="d-flex align-items-center gap-3"><span class="text-white-50 small">' . htmlspecialchars($operator['name']) . '</span>' . $roleBadge . '<a class="btn btn-sm btn-outline-light" href="/admin/logout.php">Logout</a></div>';
         } else {
             echo '<a class="btn btn-sm btn-outline-light" href="/login.php?account=admin">Login</a>';
         }

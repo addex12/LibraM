@@ -12,6 +12,29 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
+require_once dirname(__DIR__, 2) . '/includes/portal.php';
+
+if (! function_exists('staff_allowed_admin_routes')) {
+    function staff_allowed_admin_routes(): array
+    {
+        return [
+            '/admin/index.php',
+            '/admin/loans.php',
+            '/admin/members.php',
+            '/admin/fines.php',
+            '/admin/notifications.php',
+            '/admin/logout.php',
+        ];
+    }
+}
+
+if (! function_exists('staff_allowed_admin_nav_keys')) {
+    function staff_allowed_admin_nav_keys(): array
+    {
+        return ['dashboard', 'members', 'loans', 'fines', 'notifications'];
+    }
+}
+
 function admin_accounts(): array
 {
     $accounts = [];
@@ -68,14 +91,53 @@ function admin_logged_in(): bool
     return ($_SESSION['admin_authenticated'] ?? false) === true;
 }
 
+function staff_has_portal_session(): bool
+{
+    return function_exists('staff_session') && staff_session() !== null;
+}
+
+function admin_operator(): ?array
+{
+    if (admin_logged_in()) {
+        return [
+            'type' => 'admin',
+            'name' => $_SESSION['admin_username'] ?? 'Admin',
+            'role' => $_SESSION['admin_role'] ?? 'admin',
+        ];
+    }
+
+    if (staff_has_portal_session()) {
+        $staff = staff_session();
+
+        return [
+            'type' => 'staff',
+            'name' => $staff['full_name'] ?? 'Staff',
+            'role' => 'staff',
+        ];
+    }
+
+    return null;
+}
+
+function admin_is_staff_operator(): bool
+{
+    $operator = admin_operator();
+
+    return ($operator['role'] ?? null) === 'staff';
+}
+
 function admin_username(): string
 {
-    return $_SESSION['admin_username'] ?? 'Admin';
+    $operator = admin_operator();
+
+    return $operator['name'] ?? 'Admin';
 }
 
 function admin_role(): string
 {
-    return $_SESSION['admin_role'] ?? 'guest';
+    $operator = admin_operator();
+
+    return $operator['role'] ?? 'guest';
 }
 
 function is_super_admin(): bool
@@ -85,11 +147,38 @@ function is_super_admin(): bool
 
 function require_admin_login(): void
 {
-    if (! admin_logged_in()) {
-        header('Location: /login.php?account=admin');
+    if (admin_operator() !== null) {
+        return;
+    }
+
+    header('Location: /login.php?account=admin');
+    exit;
+}
+
+function enforce_admin_route_permissions(): void
+{
+    $script = $_SERVER['SCRIPT_NAME'] ?? '';
+    if ($script === '' || strpos($script, '/admin/') !== 0) {
+        return;
+    }
+
+    // Skip internal helper scripts
+    if (preg_match('#^/admin/(includes|tools)/#', $script)) {
+        return;
+    }
+
+    if (! admin_is_staff_operator()) {
+        return;
+    }
+
+    if (! in_array($script, staff_allowed_admin_routes(), true)) {
+        http_response_code(403);
+        echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Access limited</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"></head><body class="bg-light"><div class="container py-5"><div class="alert alert-warning"><h4 class="alert-heading">Restricted area</h4><p>Your staff session only has access to specific service-desk tools.</p><hr><a class="btn btn-primary" href="/staff/dashboard.php">Return to staff workspace</a></div></div></body></html>';
         exit;
     }
 }
+
+enforce_admin_route_permissions();
 
 function require_super_admin(): void
 {

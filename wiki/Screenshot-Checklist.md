@@ -1,6 +1,23 @@
 # Screenshot Checklist
 
-Use this list to capture every screen needed for the public showcase. Store the PNG files under `docs/wiki/images/` (create the folder if it does not exist) and reference them from the wiki pages.
+Use this list to capture every screen needed for the public showcase. Store the PNG files under `wiki/images/` (create the folder if it does not exist) and reference them from the wiki pages.
+
+## Quick Automation
+Run the Playwright helper in `tools/screenshots/` to batch-capture the login pages and admin module shots:
+
+```bash
+cd tools/screenshots
+npm install            # first run only
+npx playwright install # first run only
+npm run capture        # creates PNGs in ../wiki/images
+```
+
+Environment variables:
+- `LIBRAM_BASE_URL` (default `http://127.0.0.1:8081`)
+- `LIBRAM_ADMIN_USER` / `LIBRAM_ADMIN_PASSWORD` if you changed `.env`
+- `LIBRAM_SHOT_DIR` to override the output folder
+
+The script covers the login page plus the admin, staff, and member dashboards when the required credentials are supplied via environment variables (see `tools/screenshots/README.md`). Capture any additional workflows manually following the checklist below.
 
 ## Admin Portal
 | File Name | Page | Notes |

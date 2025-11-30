@@ -19,6 +19,58 @@ This guide walks through every view that an administrator (or super administrato
 | Reports | `/admin/reports.php` | Circulation analytics |
 | Operations (super admin only) | `/admin/operations.php` | Maintenance tasks, data tools |
 
+## Visual Tour
+
+### Dashboard snapshot
+![Admin dashboard overview](images/admin-dashboard.png)
+
+- KPI tiles surface catalog, member, loan, and overdue counts.
+- "User sign-ins" highlights the live staff/member feed captured by `UserSessionRepository`.
+- Quick action buttons link to the most-used modules.
+
+### Books workspace
+![Admin books list view](images/admin-books-list.png)
+![Admin book editor form](images/admin-books-edit.png)
+
+- Inline action buttons for Edit/Delete/Copy live beside each record.
+- The shared form (right-hand column) populates when editing an existing item.
+
+### Branches, shelves, and subjects
+![Branches management grid](images/admin-branches.png)
+![Shelves matrix](images/admin-shelves.png)
+![Subjects module](images/admin-subjects.png)
+
+- Branches card layout displays contact info plus the creation form.
+- Shelves list binds branch/floor filters and provides visual location badges.
+- Subjects view combines taxonomy maintenance with usage counts.
+
+### People operations
+![Members module](images/admin-members.png)
+![Staff management](images/admin-staff.png)
+
+- Member actions (edit, reset password, delete) sit inline for rapid circulation work.
+- Staff view exposes role labels and branch assignments for clarity.
+
+### Circulation workflow
+![Loans lifecycle](images/admin-loans.png)
+![Reservations queue](images/admin-reservations.png)
+![Fines ledger](images/admin-fines.png)
+
+- Status badges (borrowed, overdue, ready, unpaid) provide at-a-glance context.
+- Reservations list shows queue position, while the fines screen totals outstanding balances.
+
+### Communications & reporting
+![Notifications console](images/admin-notifications.png)
+![Reports dashboard](images/admin-reports.png)
+
+- Template editor plus send history demonstrates the notification stack.
+- Reports panel aggregates circulation analytics for leadership updates.
+
+### Super-admin operations
+![Operations toolkit](images/admin-operations.png)
+
+- Exposes data maintenance, seed reload, and troubleshooting shortcuts restricted to super admins.
+
 ## Books Module Highlights
 - **Shared Form:** Add and Edit actions reuse a single form with Add + Update buttons. Clicking *Edit* inline populates the form without page reload.
 - **Validation Rules:** Required ISBN/title/author, unique ISBN, copy counts consistent, shelf must belong to branch, publication year range check.
