@@ -1,0 +1,10 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run PHP Dev Server",
+			"type": "shell",
+			"command": "cd src/backend && php -S localhost:8000 -t public public/index.php"
+		}
+	]
+}
