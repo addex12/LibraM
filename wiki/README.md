@@ -8,7 +8,6 @@ Welcome to the LibraM documentation hub. Use this wiki as the starting point for
 - [Admin Portal Guide](Admin-Portal.md)
 - [Staff & Member Portals](Staff-and-Member-Portals.md)
 - [Data Model](Data-Model.md)
-- [Screenshot Plan](Screenshot-Checklist.md)
 
 ## System Overview
 LibraM is a PHP 8 / SQLite library management suite that provides:
@@ -33,8 +32,7 @@ Use these screenshots when publishing the wiki on GitHub. They already live unde
 ## How To Use This Wiki
 1. Start with **Architecture Summary** for a high-level view of folders, technologies, and deployment expectations.
 2. Jump to the portal-specific guides to understand UI behavior, validation, and workflows.
-3. Review the **Screenshot Plan** for a list of required captures and recommended filenames to complete the visual tour.
-4. Contribute updates by editing these Markdown files. Copy them into the GitHub Wiki or host them directly from the repo.
+3. Consult the **Data Model** page when you need schema context, then contribute updates by editing these Markdown files. Copy them into the GitHub Wiki or host them directly from the repo.
 
 ## Quick Links
 - Source root: `src/backend`
