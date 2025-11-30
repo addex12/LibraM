@@ -2,6 +2,46 @@
 
 LibraM is the production-ready Library Management System experience packaged with end-to-end documentation, an auditable PHP backend, and runnable portals that operate entirely from a PHP stack (no external frameworks required on the client).
 
+## Achievement Badges
+
+### GitHub ([@addex12](https://github.com/addex12))
+<p align="left">
+   <a href="https://github.com/addex12" title="Quickdraw">
+      <img src="https://github.githubassets.com/images/modules/profile/achievements/quickdraw-default.png" alt="GitHub Quickdraw badge" height="96" />
+   </a>
+   <a href="https://github.com/addex12" title="Pull Shark">
+      <img src="https://github.githubassets.com/images/modules/profile/achievements/pull-shark-default.png" alt="GitHub Pull Shark badge" height="96" />
+   </a>
+   <a href="https://github.com/addex12" title="YOLO">
+      <img src="https://github.githubassets.com/images/modules/profile/achievements/yolo-default.png" alt="GitHub YOLO badge" height="96" />
+   </a>
+</p>
+
+### Credly Highlights ([profile](https://www.credly.com/users/adugnagizaw))
+<p align="left">
+   <a href="https://www.credly.com/users/adugnagizaw" title="IBM Project Management Essentials">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/5/51/IBM_logo.svg" alt="IBM badge" height="44" />
+   </a>
+   <a href="https://www.credly.com/users/adugnagizaw" title="Google professional certificates: AI Essentials, Advanced Data Analytics, Data Analytics, Project Management, Cybersecurity, IT Support, Business Intelligence">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google badge" height="44" />
+   </a>
+   <a href="https://www.credly.com/users/adugnagizaw" title="Cisco Qualified Data Science Blue Belt, Computer Hardware Basics">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/1/1f/Cisco_logo.svg" alt="Cisco badge" height="44" />
+   </a>
+   <a href="https://www.credly.com/users/adugnagizaw" title="ISC2 Candidate">
+      <img src="https://upload.wikimedia.org/wikipedia/en/e/e0/ISC2_logo.png" alt="ISC2 badge" height="44" />
+   </a>
+   <a href="https://www.credly.com/users/adugnagizaw" title="Applied Data Science Lab (WorldQuant University)">
+      <img src="https://upload.wikimedia.org/wikipedia/en/4/4f/WorldQuant_University_logo.png" alt="WorldQuant University badge" height="44" />
+   </a>
+   <a href="https://www.credly.com/users/adugnagizaw" title="Microsoft UX Design Professional Certificate">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" alt="Microsoft badge" height="44" />
+   </a>
+   <a href="https://www.credly.com/users/adugnagizaw" title="Lifelong Learning 2025 (CertiProf)">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/9/9e/CertiProf_logo.png" alt="CertiProf badge" height="44" />
+   </a>
+</p>
+
 ## What's Included
 
 - Documentation sources in Markdown and LaTeX plus generated outputs in `docs/exports/` ready for DOCX/PDF submission.
